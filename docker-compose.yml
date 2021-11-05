@@ -1,0 +1,60 @@
+version: '3.4'
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    volumes:
+      - ./docker/nginx:/etc/nginx/conf.d/
+      - ./:/var/www/html
+    ports:
+      - "80:80"
+    depends_on:
+      - php_fpm
+    networks:
+      - laravel
+
+  php_fpm:
+    build:
+      context: .
+      dockerfile: ./docker/php/Dockerfile
+    container_name: php_fpm
+    volumes:
+      - ./:/var/www/html
+    working_dir: /var/www/html
+    env_file:
+      - .env
+    networks:
+      - laravel
+  mysql:
+    image: mysql:5.7
+    container_name: mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_USER: root
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: laravel
+    volumes:
+      - mysql-volumes:/var/lib/mysql
+    networks:
+      - laravel
+
+  centrifugo:
+    container_name: centrifugo
+    image: centrifugo/centrifugo:v3
+    volumes:
+      - ./docker/centrifugo/config.json:/centrifugo/config.json
+    command: centrifugo -c config.json
+    ports:
+      - '8000:8000'
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    networks:
+      - laravel
+networks:
+  laravel:
+    driver: bridge
+volumes:
+  mysql-volumes:
